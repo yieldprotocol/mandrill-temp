@@ -16,3 +16,5 @@ Once you have the desired configuration, run:
 python run.py --config_path
 ```
 
+
+<ins>CREDITS</ins>: The codebase is based on [airoboros](https://github.com/jondurbin/airoboros).
