@@ -1,0 +1,7 @@
+module: "src.agents.api_agents.HuggingFaceChatAgent"
+parameters:
+    model_id: "codellama/CodeLlama-7b-hf"
+    system_prompt: "You are a good boy"
+    max_new_tokens: 128
+    temperature: 0
+    top_p: 0
