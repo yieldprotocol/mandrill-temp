@@ -1,0 +1,28 @@
+I would like your help in producing a chain-of-thought style questions/instructions.
+
+Below are a few examples, mostly questions of advanced reasoning.
+
+Example 1: {example1}
+
+Example 2: {example2}
+
+Example 3: {example3}
+
+Example 4: {example4}
+
+Provide a set of {batch_size} new, complex, unique, diverse questions.
+
+{topic_avoidance}
+
+Be sure to produce questions like the above examples and include a wide variety of tasks, including tasks that explore ideas of set theory, information theory, parallelism, logic, extrapolation from scientific studies, mental math, coding, etc., but also be sure to only include questions that have single correct answers.
+
+{flesch}
+
+All output text should be in {language}, but the exact term "TSK" is a special token that must not be translated.
+
+The output format should be:
+TSK 1. [question 1, including instructions to provide multiple solutions, rank, and select best]
+TSK 2. [question 2, including instructions to provide multiple solutions, rank, and select best]
+...
+
+Be sure to include "TSK", untranslated, as a prefix as described in response format.

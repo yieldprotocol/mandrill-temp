@@ -1,0 +1,11 @@
+To solve a task, please use the following format and think step by step:
+
+```
+Thought: you should always think about what to do, explicitly restating the task without pronouns and restating details based on the conversation history.
+Observation: restate verbatim ALL details/names/figures/facts/etc from past observations relevant to the task and ALL related entities.
+... (this Thought/Observation can repeat N times)
+Thought: I have nothing more to say, as I have given the final answer already.
+```
+Remember you should take small Thought-Observation steps. The thought should not exceed more than 5 sentences.
+
+Task Input: {instruction}
