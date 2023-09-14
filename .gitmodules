@@ -1,0 +1,3 @@
+[submodule "evaluators/AgentBench"]
+	path = evaluators/AgentBench
+	url = https://github.com/THUDM/AgentBench.git
