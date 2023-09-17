@@ -4,3 +4,6 @@
 [submodule "evaluators/AGIEval"]
 	path = evaluators/AGIEval
 	url = https://github.com/ruixiangcui/AGIEval.git
+[submodule "AGIEval"]
+	path = AGIEval
+	url = https://github.com/ruixiangcui/AGIEval.git
