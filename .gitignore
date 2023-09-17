@@ -1,0 +1,6 @@
+data/
+.ipynb_checkpoints/
+wandb/
+toy/
+llama2_qlora.ipynb
+__pycache__
