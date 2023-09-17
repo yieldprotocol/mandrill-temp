@@ -1,6 +1,7 @@
-[submodule "agentbench/AgentBench"]
+
+[submodule "_AgentBench_"]
 	path = evaluators/agentbench/AgentBench
 	url = https://github.com/THUDM/AgentBench.git
-[submodule "agieval/AGIEval"]
+[submodule "_AGIEval__"]
 	path = evaluators/agieval/AGIEval
 	url = https://github.com/ruixiangcui/AGIEval.git
