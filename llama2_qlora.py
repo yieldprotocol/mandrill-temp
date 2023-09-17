@@ -1,13 +1,14 @@
-import datetime
+from datetime import datetime
 
 import torch
+import transformers
 from datasets import load_dataset
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import (AutoModelForCausalLM, AutoTokenizer,
                           BitsAndBytesConfig, TrainingArguments)
 
 import wandb
-from mandrill_utils.loggin_utils import generate_random_string
+from mandrill_utils.logging_utils import generate_random_string
 from preprocess.chat import llama_get_input_with_labels
 from train.trainers import MandrillTrainer
 from train.utils import print_trainable_parameters
