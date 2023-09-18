@@ -18,9 +18,9 @@ import argparse
 from os.path import join, isdir, isfile, relpath
 from glob import glob
 
-from src import Task, Agent
-from create_assignment import InstanceFactory, Assigment, deep_merge
-from src.utils import ColorMessage
+from .AgentBench.src import Task, Agent
+from .AgentBench.create_assignment import InstanceFactory, Assigment, deep_merge
+from .AgentBench.src.utils import ColorMessage
 
 
 def parse_args_to_assignment(task_name, agent, output=None, workers=None) -> Assigment:

@@ -1,9 +1,9 @@
 import os
 from typing import List, Callable
 from transformers import AutoTokenizer
-from src import utils, dataset_loader
-from src import post_process, utils, dataset_loader
-from src import evaluation
+from .AGIEval.src import utils, dataset_loader
+from .AGIEval.src import post_process, utils, dataset_loader
+from .AGIEval.src import evaluation
 
 
 run_experiment = True
