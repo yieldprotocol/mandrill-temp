@@ -2,6 +2,7 @@ module: "hfchat.HuggingFaceChatAgent"
 parameters:
     model_id: "codellama/CodeLlama-7b-hf"
     system_prompt: "You are a helpful AI assistant"
+    hf_api_token: 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
     max_new_tokens: 128
     temperature: 0
     top_p: 0

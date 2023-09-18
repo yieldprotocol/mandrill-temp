@@ -1,4 +1,9 @@
+import os
 from datetime import datetime
+
+import sys
+sys.path.append(f'{os.path.dirname(__file__)}/evaluator/agieval/AGIEval')
+sys.path.append(f'{os.path.dirname(__file__)}/evaluator/agentbench/AgentBench')
 
 import torch
 import transformers
@@ -8,9 +13,10 @@ from transformers import (AutoModelForCausalLM, AutoTokenizer,
                           BitsAndBytesConfig, TrainingArguments)
 
 import wandb
+from eval_args import EvaluationArguments
 from mandrill_utils.logging_utils import generate_random_string
 from preprocess.chat import llama_get_input_with_labels
-from train.trainers import MandrillTrainer
+from train.trainer import MandrillTrainer
 from train.utils import print_trainable_parameters
 
 HUGGINGFACE_API_TOKEN = "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"
@@ -83,18 +89,31 @@ save_steps = SAVE_DATA_POINTS // (BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS)
 wandb.init(entity=WANDB_TEAM, project=WANDB_PROJECT, name=run_name)
 
 trainer = MandrillTrainer(
-    model=model,
+    model=model, 
+    model_id=model_id, 
+    hf_api_token=HUGGINGFACE_API_TOKEN,
     train_dataset=data["train"],
+    eval_dataset=data["train"],
     args=TrainingArguments(
+        num_train_epochs=3,
         per_device_train_batch_size=BATCH_SIZE,
-        gradient_accumulation_steps=4,
+        gradient_accumulation_steps=2,
         warmup_steps=2,
         save_steps=save_steps,
+        evaluation_strategy='steps',
+        eval_steps=1,
         learning_rate=2e-4,
         fp16=True,
         logging_steps=1,
         output_dir=output_dir,
         optim="paged_adamw_8bit",
+    ),
+    eval_args=EvaluationArguments(
+        system_prompt="You are a helpful AI assistant",
+        tasks_list=["agieval"],
+        temperature=0.2,
+        max_new_tokens=32,
+        top_p=0.2,
     ),
     data_collator=transformers.DataCollatorForSeq2Seq(tokenizer),
 )

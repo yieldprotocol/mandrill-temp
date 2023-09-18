@@ -17,8 +17,9 @@ from transformers import AutoTokenizer
 
 
 class HuggingFaceChatAgent(Agent):
-    def __init__(self, model, model_id, system_prompt, temperature=0, max_new_tokens=32, top_p=0, **kwargs) -> None:
+    def __init__(self, model, model_id, system_prompt, hf_api_token, temperature=0, max_new_tokens=32, top_p=0, **kwargs) -> None:
         self.model = model
+        self.hf_api_token = hf_api_token
         self.temperature = temperature
         self.max_new_tokens = max_new_tokens
         self.top_p = top_p
@@ -49,11 +50,10 @@ class HuggingFaceChatAgent(Agent):
             elif idx==1:
                 prompt += f"<s>[INST] {prompt.strip()} [/INST] {history[idx]['content'].strip()} </s>"
             elif idx==len(history)-1:
-                prompt += f"<s>[INST] {history[idx]['user'].strip()} [/INST]"
+                prompt += f"<s>[INST] {history[idx]['content'].strip()} [/INST]"
             else:
                 if history[idx]['role']=='user':
-                    prompt += f"<s>[INST] {history[idx]['user'].strip()} [/INST] "
+                    prompt += f"<s>[INST] {history[idx]['content'].strip()} [/INST] "
                 else:
-                    prompt += f"{history[idx]['agent'].strip()} </s>"
-        prompt += f"<s>[INST] {history[-1]['user'].strip()} [/INST]"
+                    prompt += f"{history[idx]['content'].strip()} </s>"
         return prompt

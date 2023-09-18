@@ -1,0 +1,18 @@
+accelerate @ git+https://github.com/huggingface/accelerate.git@cdb001ca5f9be875034ddd0aa86a542c182782fe
+bitsandbytes==0.41.1
+black==23.9.1
+datasets==2.14.5
+einops==0.6.1
+evaluate==0.4.0
+fairscale==0.4.13
+fire==0.5.0
+jsonlines==4.0.0
+llama @ git+https://github.com/facebookresearch/llama@9f0e393991b45d320f5b4a287eaaeb8a7d2e6f8e
+openai==0.28.0
+pandas==2.1.0
+peft @ git+https://github.com/huggingface/peft.git@0fa63fb4a21bf88777b2469892b76a6e096753e8
+torch==2.0.1
+transformers @ git+https://github.com/huggingface/transformers.git@95b374952dc27d8511541d6f5a4e22c9ec11fb24
+wandb==0.15.10
+scipy==1.11.2
+tiktoken==0.5.1

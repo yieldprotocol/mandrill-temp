@@ -1,3 +1,4 @@
+from typing import List
 from dataclasses import asdict, dataclass, field, fields
 
 @dataclass
@@ -11,10 +12,10 @@ class EvaluationArguments:
     Parameters:
         system_prompt (`str`, *optional*):
             The system prompt to use while evaluating
-        temperature (`float`, *optional*, defaults to 0.0):
+        tasks_list (`List[str]`, *optional*):
+            The tasks to evaluate the model on.
+        temperature (`float`, *optional*, defaults to 0.2):
             The model's temperature for evaluating.
-        per_device_eval_batch_size (`int`, *optional*, defaults to 16):
-            The batch size per GPU/XPU/TPU/MPS/NPU core/CPU for evaluation.
         max_new_tokens (`int`, *optional*, defaults to 50):
             Maximum number of tokens to generate in evaluation.
         top_p (`float`, *optional*):
@@ -25,9 +26,12 @@ class EvaluationArguments:
         default="You are a helpful AI assistant",
         metadata={"help": " The system prompt to use while evaluating."},
     )
+    tasks_list: List[str] = field(
+        default_factory=["agieval"],
+        metadata={"help": " The system prompt to use while evaluating."},
+    )
     temperature: float = field(
-        default=0.0,
+        default=0.2,
         metadata={"help": ("The model's temperature for evaluating.")},)
-    per_device_eval_batch_size: bool = field(default=16, metadata={"help": "The batch size per GPU/XPU/TPU/MPS/NPU core/CPU for evaluation."})
     max_new_tokens: bool = field(default=False, metadata={"help": "Maximum number of tokens to generate in evaluation."})
-    top_p: bool = field(default=False, metadata={"help": "Parameter for nucleus sampling in decoding."})
+    top_p: float = field(default=0.2, metadata={"help": "Parameter for nucleus sampling in decoding."})

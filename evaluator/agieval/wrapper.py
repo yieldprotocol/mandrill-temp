@@ -1,25 +1,30 @@
 import os
 from typing import List, Callable
 from transformers import AutoTokenizer
+from peft import PeftModelForCausalLM
+
 from .AGIEval.src import utils, dataset_loader
 from .AGIEval.src import post_process, utils, dataset_loader
 from .AGIEval.src import evaluation
 
 
 run_experiment = True
-dataset_dir = "data/v1"
-raw_prompt_path = "./data/few_shot_prompts.csv"
+dataset_dir = "evaluator/agieval/AGIEval/data/v1"
+raw_prompt_path = "evaluator/agieval/AGIEval/data/few_shot_prompts.csv"
 
 class HuggingFaceChat():
-    def __init__(self, model, model_id, system_prompt, temperature=0, max_new_tokens=32, top_p=0, batch_size=32, **kwargs) -> None:
+    def __init__(self, model, model_id, system_prompt, hf_api_token, temperature=0, max_new_tokens=32, top_p=0, batch_size=32, **kwargs) -> None:
+        if isinstance(model, PeftModelForCausalLM): model = model.merge_and_unload()
         self.model = model
+        self.hf_api_token = hf_api_token
         self.temperature = temperature
         self.max_new_tokens = max_new_tokens
         self.top_p = top_p
         self.batch_size = batch_size
         self.system_prompt = system_prompt
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_api_token)
         self.tokenizer.eos_token = "<|im_end|>"
+        self.tokenizer.pad_token = self.tokenizer.eos_token
         self.history = [{"role": "system", "content": self.system_prompt},]
 
         super().__init__(**kwargs)
@@ -100,12 +105,13 @@ class HuggingFaceChat():
                     {"role": "user", "content": query},
                 )
             elif isinstance(query, list):
-                messages += query
+                self.history += query
             else:
                 raise ValueError("Unsupported query: {0}".format(query))
             prompt = self.conv2prompt(self.history)
             prompts.append(prompt)
-        input_ids_batch = self.tokenizer(prompts, return_tensors="pt")["input_ids"].to("cuda")
+
+        input_ids_batch = self.tokenizer(prompts, padding=True, return_tensors="pt")["input_ids"].to("cuda")
         output_batch = self.model.generate(
             input_ids_batch,
             temperature=self.temperature,
@@ -126,20 +132,18 @@ class HuggingFaceChat():
             elif idx==1:
                 prompt += f"<s>[INST] {prompt.strip()} [/INST] {history[idx]['content'].strip()} </s>"
             elif idx==len(history)-1:
-                prompt += f"<s>[INST] {history[idx]['user'].strip()} [/INST]"
+                prompt += f"<s>[INST] {history[idx]['content'].strip()} [/INST]"
             else:
                 if history[idx]['role']=='user':
-                    prompt += f"<s>[INST] {history[idx]['user'].strip()} [/INST] "
+                    prompt += f"<s>[INST] {history[idx]['content'].strip()} [/INST] "
                 else:
-                    prompt += f"{history[idx]['assistant'].strip()} </s>"
-        prompt += f"<s>[INST] {history[-1]['user'].strip()} [/INST]"
+                    prompt += f"{history[idx]['content'].strip()} </s>"
         return prompt
 
 
-def evaluate(model, model_id, system_prompt,
+def evaluate(model, model_id, system_prompt, hf_api_token,
              temperature=0, max_new_tokens=32, top_p=0, batch_size=32, 
              dataset_name_list=[
-                "gaokao-chinese",
                 "gaokao-geography",
                 "gaokao-history",
                 "gaokao-biology",
@@ -166,6 +170,7 @@ def evaluate(model, model_id, system_prompt,
     ## Prediction
     model = HuggingFaceChat(model=model, 
                             model_id=model_id, 
+                            hf_api_token=hf_api_token,
                             system_prompt=system_prompt, 
                             temperature=temperature, 
                             max_new_tokens=max_new_tokens, 
