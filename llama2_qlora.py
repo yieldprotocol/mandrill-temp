@@ -85,11 +85,15 @@ wandb.init(entity=WANDB_TEAM, project=WANDB_PROJECT, name=run_name)
 trainer = MandrillTrainer(
     model=model,
     train_dataset=data["train"],
+    eval_dataset=data["train"],
     args=TrainingArguments(
+        num_train_epochs=3,
         per_device_train_batch_size=BATCH_SIZE,
-        gradient_accumulation_steps=4,
+        gradient_accumulation_steps=2,
         warmup_steps=2,
         save_steps=save_steps,
+        evaluation_strategy='steps',
+        eval_steps=1,
         learning_rate=2e-4,
         fp16=True,
         logging_steps=1,
