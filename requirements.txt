@@ -14,3 +14,4 @@ peft @ git+https://github.com/huggingface/peft.git@0fa63fb4a21bf88777b2469892b76
 torch==2.0.1
 transformers @ git+https://github.com/huggingface/transformers.git@95b374952dc27d8511541d6f5a4e22c9ec11fb24
 wandb==0.15.10
+scipy==1.11.2
