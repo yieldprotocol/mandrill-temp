@@ -1,10 +1,13 @@
+import os
+import sys
+import shutil
+
 from transformers import Trainer, TrainingArguments
 from transformers.utils import logging
 from transformers.trainer_utils import EvalLoopOutput
+from peft import PeftModelForCausalLM
 
-from evaluator.agieval import wrapper as wrapper_agieval
 from eval_args import EvaluationArguments
-# from evaluator.agentbench import wrapper as wrapper_agentbench
 
 logger = logging.get_logger(__name__)
 
@@ -26,19 +29,37 @@ class MandrillTrainer(Trainer):
         '''
         https://github.com/huggingface/transformers/blob/0a55d9f7376f72ad3ff296d4249840021b03bcc4/src/transformers/trainer_utils.py#L147
         '''
+        if isinstance(self.model, PeftModelForCausalLM): self.model = self.model.merge_and_unload()
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
         model.eval()
 
         if 'agieval' in self.eval_args.tasks_list:
-            logger.info(f"***** Runnning Evaluation on AGIEval *****")
+            print(f"{'/'.join(os.path.dirname(__file__).split('/')[:-1])}/evaluator/agieval/AGIEval")
+            sys.path.append(f"{'/'.join(os.path.dirname(__file__).split('/')[:-1])}/evaluator/agieval/AGIEval")
+            from evaluator.agieval import wrapper as wrapper_agieval
+            sys.path.pop()
+            logger.info(f"***** Running Evaluation on AGIEval *****")
             wrapper_agieval.evaluate(model=model, model_id=self.model_id, hf_api_token=self.hf_api_token,
                                      system_prompt=self.eval_args.system_prompt, temperature=self.eval_args.temperature, 
                                      max_new_tokens=self.eval_args.max_new_tokens, top_p=self.eval_args.top_p,
                                      batch_size=self.args.per_device_eval_batch_size,)
         if 'agentbench' in self.eval_args.tasks_list:
-            logger.info(f"***** Runnning Evaluation on AgentBench *****")
-            wrapper_agentbench.evaluate(model=model, model_id=self.model_id, hf_api_token=self.hf_api_token,
+            shutil.copy('evaluator/agentbench/AgentBench/create_assignment.py', 'evaluator/agentbench/create_assignment.py')
+            sys.path.append(f"{'/'.join(os.path.dirname(__file__).split('/')[:-1])}/evaluator/agentbench/AgentBench")
+            from evaluator.agentbench import wrapper as wrapper_agentbench
+            sys.path.pop()
+            os.remove('evaluator/agentbench/create_assignment.py')
+            logger.info(f"***** Running Evaluation on AgentBench *****")
+            wrapper_agentbench.evaluate(agent=model, task_name='knowledgegraph', workers=30, model_id=self.model_id, hf_api_token=self.hf_api_token,
                                      system_prompt=self.eval_args.system_prompt, temperature=self.eval_args.temperature, 
                                      max_new_tokens=self.eval_args.max_new_tokens, top_p=self.eval_args.top_p,
                                      batch_size=self.args.per_device_eval_batch_size,)
+            # wrapper_agentbench.evaluate(agent=model, task_name='lateralthinkingpuzzle', workers=30, model_id=self.model_id, hf_api_token=self.hf_api_token,
+            #                          system_prompt=self.eval_args.system_prompt, temperature=self.eval_args.temperature, 
+            #                          max_new_tokens=self.eval_args.max_new_tokens, top_p=self.eval_args.top_p,
+            #                          batch_size=self.args.per_device_eval_batch_size,)
+            # wrapper_agentbench.evaluate(agent=model, task_name='dbbench', workers=5, model_id=self.model_id, hf_api_token=self.hf_api_token,
+            #                          system_prompt=self.eval_args.system_prompt, temperature=self.eval_args.temperature, 
+            #                          max_new_tokens=self.eval_args.max_new_tokens, top_p=self.eval_args.top_p,
+            #                          batch_size=self.args.per_device_eval_batch_size,)
         return EvalLoopOutput(predictions=None, label_ids=None, metrics={'fake_metric': 0.0}, num_samples=0)

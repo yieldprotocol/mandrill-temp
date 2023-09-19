@@ -1,4 +1,4 @@
-from src.agent import Agent
+from .AgentBench.src.agent import Agent
 import os
 import json
 import sys

@@ -14,7 +14,6 @@ raw_prompt_path = "evaluator/agieval/AGIEval/data/few_shot_prompts.csv"
 
 class HuggingFaceChat():
     def __init__(self, model, model_id, system_prompt, hf_api_token, temperature=0, max_new_tokens=32, top_p=0, batch_size=32, **kwargs) -> None:
-        if isinstance(model, PeftModelForCausalLM): model = model.merge_and_unload()
         self.model = model
         self.hf_api_token = hf_api_token
         self.temperature = temperature

@@ -1,10 +1,6 @@
 import os
 from datetime import datetime
-
-import sys
-sys.path.append(f'{os.path.dirname(__file__)}/evaluator/agieval/AGIEval')
-sys.path.append(f'{os.path.dirname(__file__)}/evaluator/agentbench/AgentBench')
-
+import wandb
 import torch
 import transformers
 from datasets import load_dataset
@@ -12,12 +8,12 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import (AutoModelForCausalLM, AutoTokenizer,
                           BitsAndBytesConfig, TrainingArguments)
 
-import wandb
 from eval_args import EvaluationArguments
 from mandrill_utils.logging_utils import generate_random_string
 from preprocess.chat import llama_get_input_with_labels
 from train.trainer import MandrillTrainer
 from train.utils import print_trainable_parameters
+
 
 HUGGINGFACE_API_TOKEN = "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"
 
