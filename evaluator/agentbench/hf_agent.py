@@ -24,7 +24,7 @@ class HuggingFaceChatAgent(Agent):
         self.max_new_tokens = max_new_tokens
         self.top_p = top_p
         self.system_prompt = system_prompt
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_api_token)
 
         super().__init__(**kwargs)
 
