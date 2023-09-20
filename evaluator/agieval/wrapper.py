@@ -24,8 +24,7 @@ class HuggingFaceChat():
         self.top_p = top_p
         self.batch_size = batch_size
         self.system_prompt = system_prompt
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_api_token)
-        self.tokenizer.eos_token = "<|im_end|>"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_api_token, padding_side="left")
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
         super().__init__(**kwargs)
@@ -101,7 +100,6 @@ class HuggingFaceChat():
         params = self.model.config
         bsz = len(prompt_tokens_list)
 
-        min_prompt_len = min(len(t) for t in prompt_tokens_list)
         max_prompt_len = max(len(t) for t in prompt_tokens_list)
         assert max_prompt_len <= params.max_position_embeddings
         total_len = min(params.max_position_embeddings, self.max_new_tokens + max_prompt_len)
@@ -147,8 +145,7 @@ def evaluate(model, model_id, system_prompt, hf_api_token,
                 "jec-qa-kd", "jec-qa-ca",
                 "math",
                 "sat-en-without-passage",], 
-             setting_name_list=['few-shot', 'few-shot-CoT', 
-                                'zero-shot', 'zero-shot-CoT'], 
+             setting_name_list=['few-shot-CoT', 'zero-shot-CoT'], 
              skip_stage_1=False, skip_stage_2=True, skip_stage_3=False, chat_mode=True):
 
     output_dir = f"./outputs/{model_id.replace('/', '_')}"
