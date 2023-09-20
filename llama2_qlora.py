@@ -93,6 +93,7 @@ trainer = MandrillTrainer(
     args=TrainingArguments(
         num_train_epochs=3,
         per_device_train_batch_size=BATCH_SIZE,
+        per_device_eval_batch_size=BATCH_SIZE,
         gradient_accumulation_steps=2,
         warmup_steps=2,
         save_steps=save_steps,

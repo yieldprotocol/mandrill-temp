@@ -69,7 +69,7 @@ def get_single_handler(task):
     return signal_handler
 
 def create_cfg_yaml(model_id, hf_api_token, system_prompt, 
-             temperature, max_new_tokens, top_p):
+             batch_size, temperature, max_new_tokens, top_p):
     cfg_dict = \
     {
         'module': 'evaluator.agentbench.hf_agent.HuggingFaceChatAgent',
@@ -79,7 +79,8 @@ def create_cfg_yaml(model_id, hf_api_token, system_prompt,
             'hf_api_token': str(hf_api_token),
             'max_new_tokens': max_new_tokens,
             'temperature': temperature,
-            'top_p': top_p
+            'top_p': top_p,
+            'batch_size': batch_size
         }
     }
     with open('evaluator/agentbench/hfchat.yaml', 'w') as file:
@@ -89,7 +90,7 @@ def evaluate(agent, model_id, hf_api_token, system_prompt, task_name='knowledgeg
              temperature=0.2, max_new_tokens=128, top_p=0.2, batch_size=16, output=None, workers=None):
     # create a yaml config
     create_cfg_yaml(model_id, hf_api_token, system_prompt, 
-                 temperature, max_new_tokens, top_p)
+                 batch_size, temperature, max_new_tokens, top_p)
 
     assignment = parse_args_to_assignment(task_name, agent, output, workers)
     # create_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
