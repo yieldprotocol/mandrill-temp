@@ -1,64 +1,55 @@
 import os
+import torch
 from typing import List, Callable
 from transformers import AutoTokenizer
-from src import utils, dataset_loader
-from src import post_process, utils, dataset_loader
-from src import evaluation
+from peft import PeftModelForCausalLM
+
+from preprocess.chat import llama_dialog2tokens
+from llama.generation import Message
+from .AGIEval.src import utils, dataset_loader
+from .AGIEval.src import post_process, utils, dataset_loader
+from .AGIEval.src import evaluation
 
 
 run_experiment = True
-dataset_dir = "data/v1"
-raw_prompt_path = "./data/few_shot_prompts.csv"
+dataset_dir = "evaluator/agieval/AGIEval/data/v1"
+raw_prompt_path = "evaluator/agieval/AGIEval/data/few_shot_prompts.csv"
 
 class HuggingFaceChat():
-    def __init__(self, model, model_id, system_prompt, temperature=0, max_new_tokens=32, top_p=0, batch_size=32, **kwargs) -> None:
+    def __init__(self, model, model_id, system_prompt, hf_api_token, temperature=0, max_new_tokens=32, top_p=0, batch_size=32, **kwargs) -> None:
         self.model = model
+        self.hf_api_token = hf_api_token
         self.temperature = temperature
         self.max_new_tokens = max_new_tokens
         self.top_p = top_p
         self.batch_size = batch_size
         self.system_prompt = system_prompt
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
-        self.tokenizer.eos_token = "<|im_end|>"
-        self.history = [{"role": "system", "content": self.system_prompt},]
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_api_token, padding_side="left")
+        self.tokenizer.pad_token = self.tokenizer.eos_token
 
         super().__init__(**kwargs)
 
     def run_multiple_dataset(self, work_items):
-        batch = []
-        count = 0
         for item in work_items:
             if os.path.exists(item[1]):
                 if len(utils.read_jsonl(item[1])) == item[3]:
                     continue
-            if count + item[3] > self.batch_size:
-                self.run_multiple_dataset_batch(batch)
-                batch = []
-                count = 0
-            batch.append(item)
-            count += item[3]
-        if len(batch) > 0:
-            self.run_multiple_dataset_batch(batch)
+            self.run_multiple_dataset_batch(item)
             
-    def run_multiple_dataset_batch(self, work_items):
-        if len(work_items) == 0:
+    def run_multiple_dataset_batch(self, work_item):
+        if len(work_item) == 0:
             return
-        dataset_list = []
-        item_list = []
-        for (input_path, output_path, mode, _) in work_items:
-            assert mode == work_items[0][2]
-            js_list = utils.read_jsonl(input_path)
-            content_list = [item["context"] for item in js_list]
-            dataset_list.append(len(content_list))
-            item_list += content_list
+        input_path, output_path, mode, _ = work_item
+        assert mode == work_item[2]
+        js_list = utils.read_jsonl(input_path)
+        content_list = [item["context"] for item in js_list]
 
-        results = self.query_model_with_retry(context_list=item_list, setting_name=work_items[0][2])
+        results = []
+        for idx in range(0, len(content_list), self.batch_size):
+            results += self.query_model_with_retry(context_list=content_list[idx:idx+self.batch_size], setting_name=work_item[2])
 
-        s = 0
-        for i in range(len(dataset_list)):
-            utils.save_jsonl(results[s:s + dataset_list[i]], work_items[i][1])
-            s += dataset_list[i]
-        assert s == len(results)
+        utils.save_jsonl(results, work_item[1])
+        assert len(content_list) == len(results)
         
     def query_model_with_retry(self, context_list, setting_name, retry_time=4, results=None):
         if results is None:
@@ -93,53 +84,52 @@ class HuggingFaceChat():
         return results
 
     def query_model(self, query_list, setting_name='chat') -> str:
-        prompts = []
+        prompt_tokens_list = []
         for query in query_list:
+            history = []
             if isinstance(query, str):
-                self.history.append(
+                history.append(
                     {"role": "user", "content": query},
                 )
             elif isinstance(query, list):
-                messages += query
+                history += query
             else:
                 raise ValueError("Unsupported query: {0}".format(query))
-            prompt = self.conv2prompt(self.history)
-            prompts.append(prompt)
-        input_ids_batch = self.tokenizer(prompts, return_tensors="pt")["input_ids"].to("cuda")
+            prompt_tokens = self.conv2tokens(history)
+            prompt_tokens_list.append(prompt_tokens)
+        params = self.model.config
+        bsz = len(prompt_tokens_list)
+
+        max_prompt_len = max(len(t) for t in prompt_tokens_list)
+        assert max_prompt_len <= params.max_position_embeddings
+        total_len = min(params.max_position_embeddings, self.max_new_tokens + max_prompt_len)
+
+        pad_id = self.tokenizer.pad_token_id
+        input_ids_batch = torch.full((bsz, total_len), pad_id, dtype=torch.long, device="cuda")
+        for k, t in enumerate(prompt_tokens_list):
+            input_ids_batch[k, : len(t)] = torch.tensor(t, dtype=torch.long, device="cuda")
         output_batch = self.model.generate(
-            input_ids_batch,
+            input_ids=input_ids_batch,
             temperature=self.temperature,
             max_new_tokens=self.max_new_tokens,
             top_p=self.top_p,
             eos_token_id= self.tokenizer.eos_token_id,
         )
-        output_batch = output_batch[0].to("cpu")
-
-        response = self.tokenizer.batch_decode(output_batch[input_ids_batch.shape[1]:], skip_special_tokens=True)
+        output_batch = output_batch.to("cpu")
+        response = self.tokenizer.batch_decode(output_batch[:, input_ids_batch.shape[1]:], skip_special_tokens=True)
         response = [{'choices': [{'message': {'content': r}}]} for r in response]
         return response
     
-    def conv2prompt(self, history: List[dict]) -> str:
-        for idx in range(len(history)):
-            if idx==0:
-                prompt  = f"<<SYS>>\\n{self.system_prompt}\\n<</SYS>>\\n\\n{history[idx]['content']}"
-            elif idx==1:
-                prompt += f"<s>[INST] {prompt.strip()} [/INST] {history[idx]['content'].strip()} </s>"
-            elif idx==len(history)-1:
-                prompt += f"<s>[INST] {history[idx]['user'].strip()} [/INST]"
-            else:
-                if history[idx]['role']=='user':
-                    prompt += f"<s>[INST] {history[idx]['user'].strip()} [/INST] "
-                else:
-                    prompt += f"{history[idx]['assistant'].strip()} </s>"
-        prompt += f"<s>[INST] {history[-1]['user'].strip()} [/INST]"
-        return prompt
+    def conv2tokens(self, history: List[dict]) -> str:
+        dialog = [Message(role='system', content=self.system_prompt)]
+        dialog += [Message(role=message['role'], content=message['content']) for message in history]
+        dialog_tokens = llama_dialog2tokens(dialog)
+        return dialog_tokens
 
 
-def evaluate(model, model_id, system_prompt,
-             temperature=0, max_new_tokens=32, top_p=0, batch_size=32, 
+def evaluate(model, model_id, system_prompt, hf_api_token,
+             temperature=0, max_new_tokens=32, top_p=0, batch_size=2, 
              dataset_name_list=[
-                "gaokao-chinese",
                 "gaokao-geography",
                 "gaokao-history",
                 "gaokao-biology",
@@ -155,8 +145,7 @@ def evaluate(model, model_id, system_prompt,
                 "jec-qa-kd", "jec-qa-ca",
                 "math",
                 "sat-en-without-passage",], 
-             setting_name_list=['few-shot', 'few-shot-CoT', 
-                                'zero-shot', 'zero-shot-CoT'], 
+             setting_name_list=['few-shot-CoT', 'zero-shot-CoT'], 
              skip_stage_1=False, skip_stage_2=True, skip_stage_3=False, chat_mode=True):
 
     output_dir = f"./outputs/{model_id.replace('/', '_')}"
@@ -166,6 +155,7 @@ def evaluate(model, model_id, system_prompt,
     ## Prediction
     model = HuggingFaceChat(model=model, 
                             model_id=model_id, 
+                            hf_api_token=hf_api_token,
                             system_prompt=system_prompt, 
                             temperature=temperature, 
                             max_new_tokens=max_new_tokens, 

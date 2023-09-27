@@ -9,6 +9,7 @@ import datetime
 import argparse
 import requests
 import yaml
+from copy import copy
 from typing import List, Dict, Any, Optional, Union, Tuple, Callable, Type, TypeVar
 
 import time
@@ -18,18 +19,18 @@ import argparse
 from os.path import join, isdir, isfile, relpath
 from glob import glob
 
-from src import Task, Agent
-from create_assignment import InstanceFactory, Assigment, deep_merge
-from src.utils import ColorMessage
+from .AgentBench.src import Task, Agent
+from .create_assignment import InstanceFactory, Assigment, deep_merge
+from .AgentBench.src.utils import ColorMessage
 
 
 def parse_args_to_assignment(task_name, agent, output=None, workers=None) -> Assigment:
     if not output:
         output = "outputs/" + task_name
     
-    if task_name==["os_interaction", "dbbench", "knowledgegraph", "card_game", 
+    if task_name in ["os_interaction", "dbbench", "knowledgegraph", "card_game", 
                    "lateralthinking_puzzle", "mind2web", "alfworld", "webshop"]:
-        task_config = f"config/tasks/{task_name}/dev.yaml"
+        task_config = f"evaluator/agentbench/{task_name}_dev.yaml"
     else:
         ValueError("unsupported task")
     try:
@@ -40,7 +41,7 @@ def parse_args_to_assignment(task_name, agent, output=None, workers=None) -> Ass
         with open(task_config, "r", encoding='utf-8') as f:
             task_config = yaml.safe_load(f)
 
-    agent_config = "hfchat.yaml"
+    agent_config = "evaluator/agentbench/hfchat.yaml"
     try:
         agent_config = json.loads(agent_config)
         if isinstance(agent_config, str):
@@ -67,7 +68,30 @@ def get_single_handler(task):
         sys.exit(0)
     return signal_handler
 
-def evaluate(task_name, agent, output=None, workers=None):
+def create_cfg_yaml(model_id, hf_api_token, system_prompt, 
+             batch_size, temperature, max_new_tokens, top_p):
+    cfg_dict = \
+    {
+        'module': 'evaluator.agentbench.hf_agent.HuggingFaceChatAgent',
+        'parameters': {
+            'model_id': str(model_id),
+            'system_prompt': str(system_prompt),
+            'hf_api_token': str(hf_api_token),
+            'max_new_tokens': max_new_tokens,
+            'temperature': temperature,
+            'top_p': top_p,
+            'batch_size': batch_size
+        }
+    }
+    with open('evaluator/agentbench/hfchat.yaml', 'w') as file:
+        yaml.safe_dump(cfg_dict, file, default_flow_style=False)
+
+def evaluate(agent, model_id, hf_api_token, system_prompt, task_name='knowledgegraph', 
+             temperature=0.2, max_new_tokens=128, top_p=0.2, batch_size=16, output=None, workers=None):
+    # create a yaml config
+    create_cfg_yaml(model_id, hf_api_token, system_prompt, 
+                 batch_size, temperature, max_new_tokens, top_p)
+
     assignment = parse_args_to_assignment(task_name, agent, output, workers)
     # create_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     if not assignment.output:
@@ -83,8 +107,11 @@ def evaluate(task_name, agent, output=None, workers=None):
     task.output_root_dir = assignment.output
     print(ColorMessage.cyan("[Evaluation] Successfully loaded Task."))
     config_path = os.path.join(assignment.output, "config.json")
+                 
+    assignment_ = copy(assignment)
+    assignment_.agent.parameters['model'] = assignment_.agent.parameters['model'].__class__.__name__
     with open(config_path, "w", encoding='utf-8') as f:
-        f.write(json.dumps(assignment.to_json(), indent=4, ensure_ascii=False))
+        f.write(json.dumps(assignment_.to_json(), indent=4, ensure_ascii=False))
 
     start = time.time()
     # register a signal handler to release task
