@@ -3,6 +3,7 @@ from typing import TypedDict, Optional
 import datasets
 import os
 import random
+random.seed(42)
 from dataloaders.data_formats import NAME2CLS
 from preprocess.prompts import SYSTEM_PROMPT
 
