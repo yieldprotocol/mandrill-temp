@@ -20,5 +20,5 @@ pip install -r evaluator/agentbench/AgentBench/src/tasks/lateralthinkingpuzzle/r
 
 * Finetune with QLoRA quantization
 ```bash
-python llama2_qlora.py
+python llama2_qlora.py configs/<filename>.yaml
 ```

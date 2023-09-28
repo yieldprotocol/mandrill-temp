@@ -1,0 +1,72 @@
+toy: true
+base_run_name: llama2-7b-qlora
+
+batch_size: 2
+save_data_points: 2000
+gradient_accumulation_steps: 4
+model_id: meta-llama/Llama-2-7b-chat-hf
+fp16: true
+n_epochs: 25
+lr: 2.0e-4
+
+system_prompt: "You are a helpful AI Assistant."
+
+# LoRA params to `peft.LoraConfig`
+# https://github.com/huggingface/peft/blob/f66c3859b094b4244bcafad191f5daff91f4bfb4/src/peft/tuners/lora/config.py#L24
+lora:
+    r: 8 # rank
+    lora_alpha: 32
+    target_modules: [q_proj, k_proj, v_proj]
+    lora_dropout: 0.05
+    bias: "none"
+    task_type: CAUSAL_LM
+    
+datasets:
+  - name: agentcode
+    hf_path: Alignment-Lab-AI/agentcode
+    format: prompt-response
+    sample_size: 5000
+    
+  - name: orca
+    hf_path: Open-Orca/OpenOrca
+    format: question-response
+    sample_size: 5000
+    
+  # - name: sharegpt4-english
+  #   local_path: data/sharegpt4_english.jsonl
+  #   format: sharegpt
+
+eval:
+    temperature: 0.2
+    max_new_tokens: 256
+    top_p: 0.2
+    tasks_list: ['agieval']
+    agieval_datasets:
+            # - "gaokao-geography"
+            # - "gaokao-history"
+            # - "gaokao-biology"
+            # - "gaokao-chemistry"
+            # - "gaokao-physics"
+            # - "gaokao-mathqa"
+            # - "gaokao-english"
+            # - "sat-math"
+            # - "sat-en"
+            # - "aqua-rat"
+            # - "lsat-ar"
+            # - "lsat-lr"
+            # - "lsat-rc"
+            # - "logiqa-en"
+            # - "logiqa-zh"
+            # - "gaokao-mathcloze"
+            # - "jec-qa-kd"
+            # - "jec-qa-ca"
+            - "math"
+            # - "sat-en-without-passage"
+
+wandb:
+    project: mandrill 
+    team: yieldinc
+    
+huggingface:
+    cache_dir: /notebooks/.cache/huggingface
+

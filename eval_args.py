@@ -20,6 +20,8 @@ class EvaluationArguments:
             Maximum number of tokens to generate in evaluation.
         top_p (`float`, *optional*):
             Parameter for nucleus sampling in decoding.
+        agieval_datasets (`List[str]`, *optional*, defaults to `["math"]`): 
+            AGIEval datasets to evaluate on. 
     """
     
     system_prompt: str = field(
@@ -27,11 +29,13 @@ class EvaluationArguments:
         metadata={"help": " The system prompt to use while evaluating."},
     )
     tasks_list: List[str] = field(
-        default_factory=["agieval"],
+        default_factory=lambda: ["agieval"],
         metadata={"help": " The system prompt to use while evaluating."},
     )
+    agieval_datasets: List[str] = field(default_factory=lambda: ['math'], metadata={"help": "List of AGIEval datasets to evaluate on"})
     temperature: float = field(
         default=0.2,
         metadata={"help": ("The model's temperature for evaluating.")},)
     max_new_tokens: bool = field(default=False, metadata={"help": "Maximum number of tokens to generate in evaluation."})
     top_p: float = field(default=0.2, metadata={"help": "Parameter for nucleus sampling in decoding."})
+    

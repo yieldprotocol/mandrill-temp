@@ -4,3 +4,4 @@ wandb/
 toy/
 llama2_qlora.ipynb
 __pycache__
+outputs/

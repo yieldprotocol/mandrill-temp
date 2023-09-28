@@ -42,7 +42,7 @@ class MandrillTrainer(Trainer):
             wrapper_agieval.evaluate(model=model, model_id=self.model_id, hf_api_token=self.hf_api_token,
                                      system_prompt=self.eval_args.system_prompt, temperature=self.eval_args.temperature, 
                                      max_new_tokens=self.eval_args.max_new_tokens, top_p=self.eval_args.top_p,
-                                     batch_size=self.args.per_device_eval_batch_size,)
+                                     batch_size=self.args.per_device_eval_batch_size, dataset_name_list=self.eval_args.agieval_datasets)
         if 'agentbench' in self.eval_args.tasks_list:
             shutil.copy('evaluator/agentbench/AgentBench/create_assignment.py', 'evaluator/agentbench/create_assignment.py')
             sys.path.append(f"{'/'.join(os.path.dirname(__file__).split('/')[:-1])}/evaluator/agentbench/AgentBench")
