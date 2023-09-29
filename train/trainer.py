@@ -20,11 +20,22 @@ class MandrillTrainer(Trainer):
         self.model_id = kwargs.pop('model_id')
         self.eval_args = kwargs.pop('eval_args')
         self.hf_api_token = kwargs.pop('hf_api_token')
+        self.ooms = 0
         super().__init__(*args, **kwargs)
 
     def compute_loss(self, model, inputs):
-        outputs = model(**inputs)
-        return outputs.loss
+        try:
+            outputs = model(**inputs)
+            return outputs.loss
+        except RuntimeError as e:
+            # https://github.com/facebookresearch/fairseq/blob/50a671f78d0c8de0392f924180db72ac9b41b801/fairseq/trainer.py#L188
+            if 'out of memory' in str(e).lower():
+                self.ooms += 1
+                print(f'| WARNING: ran out of memory, skipping batch. OOM Count: {self.ooms}')
+                torch.cuda.empty_cache()
+                return torch.tensor(0.0, requires_grad=True)
+            else:
+                raise e
     
     def evaluation_loop(self, dataloader, description, prediction_loss_only=False, **kwargs) -> EvalLoopOutput:
         '''
