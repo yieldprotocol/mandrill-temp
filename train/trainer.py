@@ -3,6 +3,7 @@ import sys
 import shutil
 import torch
 import torch.nn as nn
+import wandb
 
 from transformers import Trainer, TrainingArguments
 from transformers.utils import logging
@@ -86,6 +87,7 @@ class MandrillTrainer(Trainer):
                 print("WARNING: Catching Out of Memory Error")
                 torch.cuda.empty_cache()  
                 self.oom_count += 1  
+                wandb.log({'oom_count': self.oom_count})
             else:
                 raise e
 
