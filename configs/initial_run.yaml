@@ -1,11 +1,11 @@
-toy: true
+toy: false
 base_run_name: llama2-7b-qlora
 
-batch_size: 2
+batch_size: 12
 save_data_points: 2000
 gradient_accumulation_steps: 4
 model_id: meta-llama/Llama-2-7b-chat-hf
-fp16: true
+fp16: false
 n_epochs: 25
 lr: 2.0e-4
 

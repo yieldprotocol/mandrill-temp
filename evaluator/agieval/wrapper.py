@@ -1,5 +1,6 @@
 import os
 import torch
+import wandb
 from typing import List, Callable
 from transformers import AutoTokenizer
 from peft import PeftModelForCausalLM
@@ -294,6 +295,7 @@ def evaluate(model, model_id, system_prompt, hf_api_token,
             accuracy = correct_numer / len(result_for_human)
             accuracy_list.append("{0:.2%}".format(accuracy))
             sum_list[setting_id] += accuracy
+        wandb.log({f'validation/{dataset_name}/few-shot-CoT:': accuracy_list[0], f'validation/{dataset_name}_zero-shot-CoT': accuracy_list[1]})
         print("\t".join([dataset_name] + accuracy_list))
     average_list = []
     for item in sum_list:
