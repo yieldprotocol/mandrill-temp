@@ -1,12 +1,15 @@
 import os
 import sys
 import shutil
+import torch
+import torch.nn as nn
 
 from transformers import Trainer, TrainingArguments
 from transformers.utils import logging
 from transformers.trainer_utils import EvalLoopOutput
 from peft import PeftModelForCausalLM
-from train.utils import print_trainable_parameters
+from typing import Any, Dict, Union
+from contextlib import contextmanager
 
 from eval_args import EvaluationArguments
 
@@ -20,22 +23,19 @@ class MandrillTrainer(Trainer):
         self.model_id = kwargs.pop('model_id')
         self.eval_args = kwargs.pop('eval_args')
         self.hf_api_token = kwargs.pop('hf_api_token')
-        self.ooms = 0
+        self.oom_count = 0
         super().__init__(*args, **kwargs)
 
     def compute_loss(self, model, inputs):
-        try:
+        with self.handle_oom():
             outputs = model(**inputs)
             return outputs.loss
-        except RuntimeError as e:
-            # https://github.com/facebookresearch/fairseq/blob/50a671f78d0c8de0392f924180db72ac9b41b801/fairseq/trainer.py#L188
-            if 'out of memory' in str(e).lower():
-                self.ooms += 1
-                print(f'| WARNING: ran out of memory, skipping batch. OOM Count: {self.ooms}')
-                torch.cuda.empty_cache()
-                return torch.tensor(0.0, requires_grad=True)
-            else:
-                raise e
+        return torch.tensor(0.0, requires_grad=True)
+
+    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+        with self.handle_oom():
+            return super().training_step(model, inputs)
+        return torch.tensor(0.0, requires_grad=True)
     
     def evaluation_loop(self, dataloader, description, prediction_loss_only=False, **kwargs) -> EvalLoopOutput:
         '''
@@ -75,3 +75,17 @@ class MandrillTrainer(Trainer):
             #                          max_new_tokens=self.eval_args.max_new_tokens, top_p=self.eval_args.top_p,
             #                          batch_size=self.args.per_device_eval_batch_size,)
         return EvalLoopOutput(predictions=None, label_ids=None, metrics={'fake_metric': 0.0}, num_samples=0)
+
+    @contextmanager
+    def handle_oom(self):
+        # https://github.com/facebookresearch/fairseq/blob/50a671f78d0c8de0392f924180db72ac9b41b801/fairseq/trainer.py#L188
+        try:
+            yield
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                print("WARNING: Catching Out of Memory Error")
+                torch.cuda.empty_cache()  
+                self.oom_count += 1  
+            else:
+                raise e
+
