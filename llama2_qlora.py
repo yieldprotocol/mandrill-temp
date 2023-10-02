@@ -29,6 +29,7 @@ args = parse_arguments()
 with open(args.file) as file:
     try:
         config = yaml.safe_load(file)
+        config['base_run_name'] = config['base_run_name'].format(peft_method=config['peft_method'])
     except yaml.YAMLError as exc:
         print(f'Error in configuration file: {exc}')
         
@@ -44,6 +45,7 @@ print('\n'*2)
 
 # TODO: make a dataclass or pydantic model for this
 TOY = config['toy']
+PEFT_METHOD = config['peft_method']
 HF_CACHE_DIR = config.get('huggingface', {}).get('cache_dir')
 LR = config.get('lr', 2e-4)
 BATCH_SIZE = config.get('batch_size', 1)
@@ -67,12 +69,14 @@ if TOY:
     WANDB_PROJECT += "-toy"
 
 # model_id = "codellama/CodeLlama-7b-Instruct-hf"
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.bfloat16,
-)
+bnb_config = None
+if PEFT_METHOD=='qlora':
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+    )
 
 tokenizer = AutoTokenizer.from_pretrained(
     MODEL_ID, cache_dir=HF_CACHE_DIR, token=HUGGINGFACE_API_TOKEN
