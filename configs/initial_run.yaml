@@ -1,6 +1,6 @@
 toy: false
-peft_method: qlora
-base_run_name: llama2-7b-{peft_method}
+qlora: true
+base_run_name: llama2-7b-{method}
 
 batch_size: 8
 save_data_points: 5000
