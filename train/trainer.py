@@ -42,6 +42,10 @@ class MandrillTrainer(Trainer):
         '''
         https://github.com/huggingface/transformers/blob/0a55d9f7376f72ad3ff296d4249840021b03bcc4/src/transformers/trainer_utils.py#L147
         '''
+        
+        if dataloader is not None:
+            super().evaluation_loop(dataloader, description, prediction_loss_only, **kwargs)
+        
         # if isinstance(self.model, PeftModelForCausalLM): self.model = self.model.merge_and_unload()
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
         model.eval()

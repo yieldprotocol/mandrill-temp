@@ -51,6 +51,7 @@ LR = config.get('lr', 2e-4)
 BATCH_SIZE = config.get('batch_size', 1)
 N_EPOCHS = config.get('n_epochs', 25)
 BASE_RUN_NAME = config['base_run_name']
+VAL_FRAC = config.get('val_frac', 0.125)
 MODEL_ID = config['model_id']
 SAVE_DATA_POINTS = config.get('save_data_points', 2000)
 WANDB_PROJECT = config.get('wandb', {}).get('project')
@@ -96,7 +97,8 @@ model = prepare_model_for_kbit_training(model)
 model = get_peft_model(model, LoraConfig(**config.get('lora',{})))
 print_trainable_parameters(model)
 
-train_dataset = load_datasets(args.file, system_prompt=SYSTEM_PROMPT)
+dataset = load_datasets(args.file, system_prompt=SYSTEM_PROMPT)
+train_dataset, val_dataset = dataset.train_test_split(test=VAL_FRAC)
 
 output_root = "outputs/toy" if TOY else "outputs"
 run_name = (
@@ -115,7 +117,7 @@ trainer = MandrillTrainer(
     model_id=MODEL_ID, 
     hf_api_token=HUGGINGFACE_API_TOKEN,
     train_dataset=train_dataset,
-    eval_dataset=train_dataset,
+    eval_dataset=val_dataset,
     args=TrainingArguments(
         num_train_epochs=N_EPOCHS,
         per_device_train_batch_size=BATCH_SIZE,
